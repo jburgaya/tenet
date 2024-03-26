@@ -7,7 +7,7 @@ Analysis of transmission events in bacterial strains.
 The pipeline consists on the following steps:
 * Identify PopPunk sequence clusters (SCs)
 
-* Use (PopPIPE)[https://github.com/jburgaya/PopPIPE/tree/master#poppipe-population-analysis-pipeline-] 
+* Use [PopPIPE pipeline](https://github.com/jburgaya/PopPIPE/tree/master#poppipe-population-analysis-pipeline-)
   * Split strains into PopPUNK SCs
   * Select only strains with at least 10 strains/SC
   * Align strains within each SC (ska build, ska align)
