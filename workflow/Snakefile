@@ -1,0 +1,75 @@
+from snakemake.utils import validate
+import pandas as pd
+import os
+
+# ----- load config file ----- #
+
+configfile: "config/config.yml"
+
+# ----- define functions ----- #
+def _read_file_names(indir, extension='.fna'):
+  return {x.split(extension)[0] for x in os.listdir(indir) if x.endswith(extension)}
+
+# this function reads the full path to the dir
+def _read_dir(indir):
+  return {os.path.join(indir, x)
+          for x in os.listdir(indir)}
+
+# poppipe functions
+prefix_match = re.match(r"^(.+)\.h5$", config["poppunk_h5"])
+if prefix_match:
+    db_prefix = prefix_match.group(1)
+else:
+    raise RuntimeError("PopPUNK DB is not a .h5 file")
+
+samples = pd.read_table(config["poppunk_rfile"], header=None, index_col=0)
+clusters = pd.read_table(config["poppunk_clusters"], sep=",").set_index("Taxon")
+
+# ----- start execution of the rules ----- #
+
+def _read_dir(indir):
+    return [x for x in os.listdir(indir) if os.path.isdir(os.path.join(indir, x))]
+
+rule all:
+  input:
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists.npy",
+             strain=_read_dir(config["strains_dir"])),
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists.pkl",
+             strain=_read_dir(config["strains_dir"])),
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/njtree.nwk",
+             strain=_read_dir(config["strains_dir"]))
+
+rule run_sketchlib_dists:
+    input:
+        database = config["poppunk_h5"],
+        names = "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/names.txt"
+    output:
+        "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists.npy",
+        "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists.pkl"
+    group:
+        "sketchlib"
+    log:
+        "out/logs/{strain}_sketchlib.log"
+    params:
+        db_prefix = db_prefix,
+        dist_prefix = "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists"
+    threads:
+        4
+    conda:
+        "envs/sketch.yml"
+    shell:
+        "sketchlib query dist {params.db_prefix} {params.db_prefix} --subset {input.names} "
+        "-o {params.dist_prefix} --cpus {threads} &> {log}"
+
+rule run_generate_nj:
+    input:
+        npy="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists.npy",
+        pkl="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists.pkl"
+    output:
+        start_tree="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/njtree.nwk"
+    group:
+        "quicktree"
+    conda:
+        "envs/nj.yml"
+    script:
+        "scripts/run_rapidnj.py"

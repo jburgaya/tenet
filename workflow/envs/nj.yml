@@ -1,0 +1,10 @@
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - python >=3.5
+  - numpy =1.18
+  - ete3 >= 3.1.1
+  - rapidnj =v2.3.2
+  - pp-sketchlib
+  - pyqt >=4.11.4
