@@ -17,6 +17,15 @@ The pipeline consists on the following steps:
 
 Part of the pipeline is based on [PopPIPE pipeline](https://github.com/jburgaya/PopPIPE/tree/master#poppipe-population-analysis-pipeline-)
 
+# Get started
+
+The pipeline depends on Conda.
+
+```
+conda env create -n tenet --file=environment.yml
+conda create -n poppipe snakemake python numpy iqtree rapidnj ete3 ska pp-sketchlib poppunk r-fastbaps mandrake
+```
+
 # Author
 
 Judit Burgaya (judit.burgaya@gmail.com | BuirgayaVentura.Judit@mh-hannover.de)
