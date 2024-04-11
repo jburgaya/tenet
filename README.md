@@ -8,9 +8,9 @@ The pipeline consists on the following steps:
 
 * Identify PopPunk sequence clusters (SCs)
 * ```split_clusters.py``` -> Split strains into PopPUNK SCs with at least 6 strains/SC. Creates an extra dir with SC with less than 6 strains/SC. Creates names.txt and rfile.txt with strains within the cluster (as in PopPIPE pipeline).
-* Align strains within each SC (ska build, ska align) w/ [ska](https://github.com/bacpop/ska.rust)
-* Generate ML phylogeny w/ [iqtree](https://github.com/Cibiv/IQ-TREE)
-* count_snps -> Calculate SNPs from fasta alignment. It uses [snp-dists](https://github.com/tseemann/snp-dists)
+* Align strains within each SC using ska build & ska align, using [ska](https://github.com/bacpop/ska.rust)
+* Generate ML phylogeny using [iqtree](https://github.com/Cibiv/IQ-TREE)
+* Calculate SNPs from fasta alignment. It uses [snp-dists](https://github.com/tseemann/snp-dists)
 * ```snps2te.py``` -> Infer transmission events from snps, including metadata features: samplingdate and patient_id
   * Get output df with all strains and all te
 * ```tenet``` -> Create transmission events networks and calculate network parameters over time
