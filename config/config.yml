@@ -1,0 +1,39 @@
+# ----- params ----- #
+
+# ska options
+ska:
+  fastq_qual: 20
+  fastq_cov: 4
+  kmer: 31
+  single_strand: false
+  freq_filter: 0.9
+
+# IQ-TREE options
+iqtree:
+  enabled: true
+  mode: full
+  model: GTR+G+ASC
+
+# fastbaps options
+fastbaps:
+  # Number of hierarchical clustering levels
+  levels: 2
+
+# mandrake options
+mandrake:
+  knn: 50
+  perplexity: 25
+  maxIter: 100000
+
+# ----- inputs ----- #
+
+# outputs for kpneumo
+poppunk_rfile: /vol/projects/jburgaya/pipeline/tenet/poppunk_input_kp.txt
+poppunk_clusters: /vol/projects/jburgaya/pipeline/tenet/out/poppunk/kpneumo/kpneumo_clusters.csv
+poppunk_h5: /vol/projects/jburgaya/pipeline/tenet/out/poppunk/kpneumo/kpneumo.h5
+
+# strians cluster directory
+strains_dir: /vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters
+
+# ----- outputs ----- #
+

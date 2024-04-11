@@ -37,6 +37,12 @@ rule all:
       expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/dists.pkl",
              strain=_read_dir(config["strains_dir"])),
       expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/njtree.nwk",
+             strain=_read_dir(config["strains_dir"])),
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers.skf",
+             strain=_read_dir(config["strains_dir"])),
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln",
+             strain=_read_dir(config["strains_dir"])),
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.nwk",
              strain=_read_dir(config["strains_dir"]))
 
 rule run_sketchlib_dists:
@@ -73,3 +79,58 @@ rule run_generate_nj:
         "envs/nj.yml"
     script:
         "scripts/run_rapidnj.py"
+
+rule run_skabuild:
+    input:
+        samples="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/rfile.txt"
+    output:
+        skf="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers.skf",
+    params:
+        skf_prefix="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers",
+        fastq_qual=config['ska']['fastq_cov'],
+        fastq_cov=config['ska']['fastq_qual'],
+        kmer=config['ska']['kmer'],
+        single_strand=config['ska']['single_strand']
+    log:
+        "out/logs/ska_build_{strain}.log"
+    conda:
+        "envs/ska.yml"
+    script:
+        "scripts/run_ska_build.py"
+
+rule run_skaalign:
+    input:
+        skf="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers.skf"
+    output:
+        alignment="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln"
+    log:
+        "out/logs/ska_align_{strain}.log"
+    params:
+        prefix="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align"
+    conda:
+        "envs/ska.yml"
+    shell:
+        "ska align {input.skf} > {output.alignment} 2> {log}"
+
+rule run_iq_tree:
+    input:
+        start_tree="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/njtree.nwk",
+        alignment="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln",
+        rfiles=config["poppunk_rfile"]
+    output:
+        rooted="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.nwk",
+        unrooted=temp("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.unrooted.treefile"),
+        iqtree=temp("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.unrooted.iqtree")
+    log:
+        "output/strains/{strain}/besttree.unrooted.log"
+    params:
+        enabled=config['iqtree']['enabled'],
+        mode=config['iqtree']['mode'],
+        model=config['iqtree']['model'],
+        prefix="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.unrooted"
+    conda:
+        "envs/iqtree.yml"
+    threads: 12
+    script:
+        "scripts/run_iqtree.py"
+
