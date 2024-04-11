@@ -1,4 +1,4 @@
-# tenet: from assemblies to **t**ransmission **e**vents **net**works
+# **T**ransmission **E**vents **NET**works
 
 Analysis of transmission events in bacterial strains.
 
