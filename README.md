@@ -1,4 +1,4 @@
-# **T**ransmission **E**vents **NET**works
+# __T__ransmission __E__vents __NET__works
 
 Analysis of transmission events in bacterial strains.
 
@@ -28,4 +28,4 @@ conda create -n poppipe snakemake python numpy iqtree rapidnj ete3 ska pp-sketch
 
 # Author
 
-Judit Burgaya (judit.burgaya@gmail.com | BuirgayaVentura.Judit@mh-hannover.de)
+Judit Burgaya (judit.burgaya@gmail.com | BurgayaVentura.Judit@mh-hannover.de)
