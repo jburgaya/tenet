@@ -42,7 +42,7 @@ rule all:
              strain=_read_dir(config["strains_dir"])),
       expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln",
              strain=_read_dir(config["strains_dir"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.nwk",
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists.tsv",
              strain=_read_dir(config["strains_dir"]))
 
 rule run_sketchlib_dists:
@@ -112,25 +112,14 @@ rule run_skaalign:
     shell:
         "ska align {input.skf} > {output.alignment} 2> {log}"
 
-rule run_iq_tree:
+rule run_snpsdist:
     input:
-        start_tree="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/njtree.nwk",
-        alignment="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln",
-        rfiles=config["poppunk_rfile"]
+        aln="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln"
     output:
-        rooted="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.nwk",
-        unrooted=temp("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.unrooted.treefile"),
-        iqtree=temp("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.unrooted.iqtree")
+        snps="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists.tsv"
     log:
-        "output/strains/{strain}/besttree.unrooted.log"
-    params:
-        enabled=config['iqtree']['enabled'],
-        mode=config['iqtree']['mode'],
-        model=config['iqtree']['model'],
-        prefix="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/besttree.unrooted"
+        "out/logs/snp-dists_{strain}.log"
     conda:
-        "envs/iqtree.yml"
-    threads: 12
-    script:
-        "scripts/run_iqtree.py"
-
+        "envs/snp-dists.yml"
+    shell:
+        "snp-dists -q -b -m {input.aln} > {output.snps}"
