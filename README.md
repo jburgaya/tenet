@@ -1,4 +1,4 @@
-# __T__ ransmission __E__ vents __NET__ works
+# __T_ ransmission __E_ vents __NET_ works
 
 Analysis of transmission events in bacterial strains.
 
