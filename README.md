@@ -1,4 +1,4 @@
-# _T_ ransmission  _E_ vents  _NET_ works
+# Transmission  Events  NETworks
 
 Analysis of transmission events in bacterial strains.
 
