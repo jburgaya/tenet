@@ -43,6 +43,8 @@ rule all:
       expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln",
              strain=_read_dir(config["strains_dir"])),
       expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists.tsv",
+             strain=_read_dir(config["strains_dir"])),
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te.tsv",
              strain=_read_dir(config["strains_dir"]))
 
 rule run_sketchlib_dists:
@@ -123,3 +125,15 @@ rule run_snpsdist:
         "envs/snp-dists.yml"
     shell:
         "snp-dists -q -b -m {input.aln} > {output.snps}"
+
+rule run_snps2te:
+    input:
+       snps="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists.tsv",
+       data="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/kp_metadata_all.tsv"
+    output:
+       "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te.tsv"
+    log:
+        "out/logs/te_{strain}.log"
+    shell:
+        "python workflow/scripts/snps2te.py {input.snps} {input.data}"
+
