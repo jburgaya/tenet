@@ -16,7 +16,9 @@ The pipeline consists on the following steps:
   * Get output df with all strains and all te
 * ```tenet``` -> Create transmission events networks and calculate network parameters over time
 
+
 Part of the pipeline is based on [PopPIPE pipeline](https://github.com/jburgaya/PopPIPE/tree/master#poppipe-population-analysis-pipeline-)
+
 
 # Get started
 
