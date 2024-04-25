@@ -4,9 +4,10 @@ Analysis of transmission events in bacterial strains.
 
 # Pipeline
 
+Run PopPUNK outside the pipeline.
+
 The pipeline consists on the following steps:
 
-* Identify PopPunk sequence clusters (SCs)
 * ```split_clusters.py``` -> Split strains into PopPUNK SCs with at least 6 strains/SC. Creates an extra dir with SC with less than 6 strains/SC. Creates names.txt and rfile.txt with strains within the cluster (as in PopPIPE pipeline).
 * Align strains within each SC using ska build & ska align, using [ska](https://github.com/bacpop/ska.rust)
 * Generate ML phylogeny using [iqtree](https://github.com/Cibiv/IQ-TREE)
@@ -23,7 +24,7 @@ The pipeline depends on Conda.
 
 ```
 conda env create -n tenet --file=environment.yml
-conda create -n poppipe snakemake python numpy iqtree rapidnj ete3 ska pp-sketchlib poppunk r-fastbaps mandrake
+conda create -n tenet snakemake python numpy iqtree rapidnj ete3 ska pp-sketchlib poppunk r-fastbaps mandrake
 ```
 
 # Author
