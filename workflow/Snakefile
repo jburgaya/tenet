@@ -1,6 +1,7 @@
 from snakemake.utils import validate
 import pandas as pd
 import os
+import glob
 
 # ----- load config file ----- #
 
@@ -139,18 +140,6 @@ rule run_snps2te:
     shell:
         "python workflow/scripts/snps2te.py {input.snps} {input.data}"
 
-rule merge_te:
-    input:
-        expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te.tsv", strain=_read_dir(config["strains_dir"]))
-    output:
-        "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/snp-dists_te_merged.tsv"
-    run:
-        first_input_file = snakemake.input[0]
-        first_df = pd.read_csv(first_input_file, sep='\t')
-        df_list = [first_df] + [pd.read_csv(file, sep='\t', skiprows=1) for file in snakemake.input[1:]]
-        merged_df = pd.concat(df_list, ignore_index=True)
-        merged_df.to_csv(snakemake.output[0], index=False)
-
 rule run_tenet_clusters:
     input:
         te="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te.tsv",
@@ -169,17 +158,16 @@ rule run_tenet_clusters:
 
 rule run_tenet_all:
     input:
-	te="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/snp-dists_te_merged.tsv",
+        te="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/snp-dists_te_merged.tsv",
         data="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/kp_metadata_all.tsv"
     output:
         "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/tenet.done"
     log:
         "out/logs/tenet_all.log"
     conda:
-	"envs/tenet.yml"
+        "envs/tenet.yml"
     shell:
-	"""
+        """
         python workflow/scripts/tenet.py {input.te} {input.data}
         touch {output}
         """
-
