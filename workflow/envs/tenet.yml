@@ -1,7 +1,8 @@
 channels:
   - bioconda
 dependencies:
+  - networkx
   - scipy
   - seaborn
   - matplotlib
-
+  - statsmodels
