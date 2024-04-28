@@ -171,3 +171,37 @@ rule run_tenet_all:
         python workflow/scripts/tenet.py {input.te} {input.data}
         touch {output}
         """
+
+rule run_corr:
+    input:
+	network="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te_network_p.tsv",
+        data="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/kp_metadata_all.tsv",
+        restrictions="/vol/projects/jburgaya/pipeline/tenet/data/restrictions.tsv"
+    output:
+	"/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/corr.done"
+    log:
+        "out/logs/corr_{strain}.log"
+    conda:
+	"envs/tenet.yml"
+    shell:
+	"""
+        python workflow/scripts/corr.py {input.network} {input.data} {input.restrictions}
+        touch {output}
+        """
+
+rule run_tenet_all:
+    input:
+	network="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/snp-dists_te_network_p.tsv",
+        data="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/kp_metadata_all.tsv",
+        restrictions="/vol/projects/jburgaya/pipeline/tenet/data/restrictions.tsv"
+    output:
+	"/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/corr.done"
+    log:
+        "out/logs/corr_all.log"
+    conda:
+	"envs/tenet.yml"
+    shell:
+        """
+        python workflow/scripts/corr.py {input.te} {input.data} {input.restrictions}
+        touch {output}
+        """
