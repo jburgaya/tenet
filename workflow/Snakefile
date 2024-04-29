@@ -48,7 +48,10 @@ rule all:
       expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te.tsv",
              strain=_read_dir(config["strains_dir"])),
       expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/tenet.done",
+             strain=_read_dir(config["strains_dir"])),
+      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/corr.done",
              strain=_read_dir(config["strains_dir"]))
+
 
 rule run_sketchlib_dists:
     input:
