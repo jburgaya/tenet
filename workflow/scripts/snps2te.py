@@ -48,20 +48,15 @@ if __name__ == "__main__":
     # calculate transmission events based on conditions
     # add option to add multiple columns based on multiple conditions
     # specify thresholds
-    s['te_5_30d'] = ((s['snps'] <= 5) & (s['date_diff'] <= 30)).astype(int)
-    s['te_10_30d'] = ((s['snps'] <= 10) & (s['date_diff'] <= 30)).astype(int)
-    s['te_30_30d'] = ((s['snps'] <= 30) & (s['date_diff'] <= 30)).astype(int)
-    s['te_50_30d'] = ((s['snps'] <= 50) & (s['date_diff'] <= 30)).astype(int)
-    s['te_100_30d'] = ((s['snps'] <= 100) & (s['date_diff'] <= 30)).astype(int)
-    s['te_5_60d'] = ((s['snps'] <= 5) & (s['date_diff'] <= 60)).astype(int)
     s['te_10_60d'] = ((s['snps'] <= 10) & (s['date_diff'] <= 60)).astype(int)
-    s['te_30_60d'] = ((s['snps'] <= 30) & (s['date_diff'] <= 60)).astype(int)
-    s['te_50_60d'] = ((s['snps'] <= 50) & (s['date_diff'] <= 60)).astype(int)
-    s['te_100_60d'] = ((s['snps'] <= 100) & (s['date_diff'] <= 60)).astype(int)
+    s['te_21_60d'] = ((s['snps'] <= 21) & (s['date_diff'] <= 60)).astype(int)
+    s['te_31_60d'] = ((s['snps'] <= 31) & (s['date_diff'] <= 60)).astype(int)
+    s['te_10'] = (s['snps'] <= 10).astype(int)
+    s['te_21'] = (s['snps'] <= 21).astype(int)
+    s['te_31'] = (s['snps'] <= 31).astype(int)
 
     # reorder columns
-    s = s[['sample1', 'sample2', 'te_5_30d', 'te_10_30d', 'te_30_30d', 'te_50_30d', 'te_100_30d',
-           'te_5_60d', 'te_10_60d', 'te_30_60d', 'te_50_60d', 'te_100_60d', 'snps', 'date_diff', 'pat_id1', 'pat_id2']]
+    s = s[['sample1', 'sample2', 'te_10', 'te_21', 'te_31', 'te_10_60d', 'te_21_60d', 'te_31_60d']]
 
     # drop rows if sample1 == sample2
     s = s[s['sample1'] != s['sample2']]
