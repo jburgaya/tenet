@@ -2,8 +2,8 @@
 
 import glob
 
-input_pattern = "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/*/snp-dists_te.tsv"
-output_file = "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/snp-dists_te_merged.tsv"
+input_pattern = "/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/*/snp-dists_te.tsv"
+output_file = "/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/snp-dists_te_merged.tsv"
 
 # Get a list of all files matching the input pattern
 input_files = glob.glob(input_pattern)
