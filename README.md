@@ -1,7 +1,6 @@
 # Transmission  Events  NETworks
 
 Analysis of transmission events in bacterial strains.
-- bcftools: 10.1093/gigascience/giab008
 
 # Pipeline
 
