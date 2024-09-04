@@ -19,7 +19,7 @@ The pipeline consists on the following steps:
 
 Part of the pipeline is based on [PopPIPE pipeline](https://github.com/jburgaya/PopPIPE/tree/master#poppipe-population-analysis-pipeline-)
 
-### **test**
+## **test**
 
 # Get started
 
