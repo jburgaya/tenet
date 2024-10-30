@@ -22,6 +22,13 @@ Part of the pipeline is based on [PopPIPE pipeline](https://github.com/jburgaya/
 
 # Get started
 
+Make a copy of this repository
+
+```
+git clone --recursive https://github.com/jburgaya/tenet.git TENET
+cd TENET 
+```
+
 The pipeline depends on Conda.
 
 ```
