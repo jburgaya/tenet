@@ -33,18 +33,20 @@ clusters = pd.read_table(config["poppunk_clusters"], sep=",", header=0).set_inde
 
 print(clusters["Cluster"].unique())
 
-included_strain_ids = list((clusters.Cluster.value_counts()[clusters.Cluster.value_counts() >= config["min_cluster_size"]]).index)
-valid_indices = clusters.index.intersection(samples.index)
-included_samples = samples.loc[valid_indices.intersection(clusters.index[clusters["Cluster"].isin(included_strain_ids)])]
+valid_clusters = clusters["Cluster"].value_counts().loc[lambda x: x >= config["min_cluster_size"]].index
 
-print(included_strain_ids)
+valid_indices = clusters.index.intersection(samples.index)
+included_clusters = clusters.loc[valid_indices].loc[clusters["Cluster"].isin(valid_clusters), "Cluster"].unique()
+included_samples = samples.loc[valid_indices.intersection(clusters.index[clusters["Cluster"].isin(included_clusters)])]
+
+print("Included clusters:", included_clusters)
 
 # ----- start execution of the rules ----- #
 
 rule split_strains:
     input:
         expand("out/clusters/{strain}/rfile.txt",
-             strain=clusters["Cluster"].unique())
+             strain=included_clusters)
 
 rule run_split_strains:
     input:
@@ -64,7 +66,7 @@ rule run_split_strains:
 rule skabuild:
     input:
         expand("out/clusters/{strain}/split_kmers.skf",
-             strain=included_strain_ids)
+             strain=included_clusters)
 
 rule run_skabuild:
     input:
@@ -87,7 +89,7 @@ rule run_skabuild:
 rule skaalign:
     input:
       expand("out/clusters/{strain}/align_variants.aln",
-             strain=included_strain_ids)
+             strain=included_clusters)
 
 rule run_skaalign:
     input:
@@ -106,7 +108,7 @@ rule run_skaalign:
 rule tree:
     input:
       expand("out/clusters/{strain}/{strain}_tree.iqtree",
-           strain=included_strain_ids)
+           strain=included_clusters)
 
 rule run_tree:
     input:
@@ -129,7 +131,7 @@ rule run_tree:
 rule snpsdists:
     input:
       expand("out/clusters/{strain}/snp-dists.tsv",
-             strain=included_strain_ids)
+             strain=included_clusters)
 
 rule run_snpsdist:
     input:
@@ -146,7 +148,7 @@ rule run_snpsdist:
 rule snps2te:
     input:
       expand("out/clusters/{strain}/snp-dists_te.tsv",
-             strain=included_strain_ids)
+             strain=included_clusters)
 
 rule run_snps2te:
     input:
@@ -165,7 +167,7 @@ rule run_snps2te:
 rule merge:
     input:
         expand("out/clusters/{strain}/snp-dists_te.tsv",
-             strain=included_strain_ids)
+             strain=included_clusters)
     output:
         "out/te_merged.tsv"
     log:
