@@ -1,0 +1,13 @@
+name: tenet
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - geopy
+  - pandas
+  - numpy
+  - python
+  - psutil
+  - snakemake
+prefix: /fast-storage/miniconda3/envs/tenet
