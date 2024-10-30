@@ -8,13 +8,13 @@ Run PopPUNK outside the pipeline.
 
 The pipeline consists on the following steps:
 
-* ```split_clusters.py``` -> Split strains into PopPUNK SCs with at least 6 strains/SC. Creates an extra dir with SC with less than 6 strains/SC. Creates names.txt and rfile.txt with strains within the cluster (as in PopPIPE pipeline).
+* Split strains into PopPUNK SCs with at least 3 strains/SC. Creates names.txt and rfile.txt with strains within the cluster (as in PopPIPE pipeline). Clusters are found in `out/clusters/{strain}`
 * Align strains within each SC using ska build & ska align, using [ska](https://github.com/bacpop/ska.rust)
 * Generate ML phylogeny using [iqtree](https://github.com/Cibiv/IQ-TREE)
 * Calculate SNPs from fasta alignment. It uses [snp-dists](https://github.com/tseemann/snp-dists)
-* ```snps2te.py``` -> Infer transmission events from snps, including metadata features: samplingdate and patient_id
-  * Get output df with all strains and all te
-* ```tenet``` -> Create transmission events networks and calculate network parameters over time
+* Infer transmission events from snps, considering metadata: samplingdate and patient_id (if present). `snps2te.py` the script computes the expected snps / time elapsed + 90% CI.
+* Merge into single output file `out/te_merged.tsv`
+* Create transmission events networks and calculate network parameters over time.
 
 
 Part of the pipeline is based on [PopPIPE pipeline](https://github.com/jburgaya/PopPIPE/tree/master#poppipe-population-analysis-pipeline-)
@@ -26,8 +26,73 @@ The pipeline depends on Conda.
 
 ```
 conda env create -n tenet --file=environment.yml
-conda create -n tenet snakemake python numpy iqtree rapidnj ete3 ska pp-sketchlib poppunk r-fastbaps mandrake
+conda activate tenet
 ```
+
+Run the bootstrap script to create the input files and directories
+
+```
+bash bootstrap.sh
+```
+
+## Modify the config file
+
+Modify the params in the `config/config.yml` file
+
+```
+# ----- params ----- #
+
+# ska options
+ska:
+  fastq_qual: 20
+  fastq_cov: 4
+  kmer: 31
+  single_strand: false
+  freq_filter: 0.9
+
+# IQ-TREE options
+iqtree:
+  model: GTR+G+ASC
+  alternative: GTR+G
+
+# snps2te
+# this is for kpneumoniae
+# based on within patient snps accumulation
+# set-back: we miss MGE transfer/loss with this
+#snps_day_ratio: 0.04 
+snps_day_ratio: 0.08
+min_snps: 5
+
+# min cluster size
+min_cluster_size: 3
+
+# ----- inputs ----- #
+# already there produced outisde the pipeline
+# data
+data: "data/data.tsv"
+
+# poppunk
+poppunk_rfile: "poppunk_input.txt"
+poppunk_clusters: "out/poppunk/poppunk_clusters/poppunk_clusters_clusters.csv"
+poppunk_h5: "out/poppunk/Klebsiella_pneumoniae_v3_full/Klebsiella_pneumoniae_v3_full.h5"
+
+```
+
+## Run the pipeline!
+
+Then run snakemake, first with a dry run `-n`, and then the actual run.
+
+```
+snakemake --use-conda --cores 12 tree merge -p -n
+snakemake --use-conda --cores 12 tree merge -p
+```
+
+# Outputs
+
+The pipeline will produce a unique file in `out/te_merged.tsv` with the pairwise comparison between samples within the dataset, the snps and expected snps based on the given snps/day ratio, and the classification as a transmission event or not.
+
+Only the sequence clusters with > 3 sequences will be considered to run the pipeline. A phylogenetic tree for each cluster will be computed, and store within `out/clusters/{strain}/{strain}_tree`.
+
 
 # Author
 
