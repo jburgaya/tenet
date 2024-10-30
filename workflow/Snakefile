@@ -12,126 +12,68 @@ def _read_file_names(indir, extension='.fna'):
   return {x.split(extension)[0] for x in os.listdir(indir) if x.endswith(extension)}
 
 # this function reads the full path to the dir
-def _read_dir(indir):
+def _read_dir_path(indir):
   return {os.path.join(indir, x)
           for x in os.listdir(indir)}
 
-# poppipe functions
-prefix_match = re.match(r"^(.+)\.h5$", config["poppunk_h5_p"])
+# this function reads the directories within a dir
+def _read_dir(indir):
+    return [x for x in os.listdir(indir)
+            if os.path.isdir(os.path.join(indir, x))]
+
+# poppunk functions
+prefix_match = re.match(r"^(.+)\.h5$", config["poppunk_h5"])
 if prefix_match:
     db_prefix = prefix_match.group(1)
 else:
     raise RuntimeError("PopPUNK DB is not a .h5 file")
 
-samples = pd.read_table(config["poppunk_rfile_p"], header=None, index_col=0)
-clusters = pd.read_table(config["poppunk_clusters_p"], sep=",").set_index("Taxon")
+samples = pd.read_table(config["poppunk_rfile"], header=None, index_col=0)
+clusters = pd.read_table(config["poppunk_clusters"], sep=",", header=0).set_index("Taxon")
+
+print(clusters["Cluster"].unique())
+
+included_strain_ids = list((clusters.Cluster.value_counts()[clusters.Cluster.value_counts() >= config["min_cluster_size"]]).index)
+included_samples = samples.loc[clusters.index[clusters.isin(included_strain_ids)["Cluster"]]]
+
+print(included_strain_ids)
 
 # ----- start execution of the rules ----- #
 
-def _read_dir(indir):
-    return [x for x in os.listdir(indir) if os.path.isdir(os.path.join(indir, x))]
-
-rule all:
-  input:
-#      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers.skf",
-#             strain=_read_dir(config["strains_dir"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln",
-             strain=_read_dir(config["strains_dir"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists.tsv",
-             strain=_read_dir(config["strains_dir"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te.tsv",
-             strain=_read_dir(config["strains_dir"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/split_kmers.skf",
-             strain=_read_dir(config["strains_dir_p"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/align_variants.aln",
-             strain=_read_dir(config["strains_dir_p"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/snp-dists.tsv",
-             strain=_read_dir(config["strains_dir_p"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/snp-dists_te.tsv",
-             strain=_read_dir(config["strains_dir_p"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/split_kmers.skf",
-             strain=_read_dir(config["strains_dir_e"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/align_variants.aln",
-             strain=_read_dir(config["strains_dir_e"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/snp-dists.tsv",
-             strain=_read_dir(config["strains_dir_e"])),
-      expand("/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/snp-dists_te.tsv",
-             strain=_read_dir(config["strains_dir_e"]))
-
-# --- Klebsiella pneumo --- #
-
-#rule run_skabuild:
-#    input:
-#        samples="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/rfile.txt"
-#    output:
-#        skf="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers.skf",
-#    params:
-#        skf_prefix="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers",
-#        fastq_qual=config['ska']['fastq_cov'],
-#        fastq_cov=config['ska']['fastq_qual'],
-#        kmer=config['ska']['kmer'],
-#        single_strand=config['ska']['single_strand']
-#    log:
-#        "out/logs/ska_build_{strain}.log"
-#    conda:
-#        "envs/ska.yml"
-#    script:
-#        "scripts/run_ska_build.py"
-
-rule run_skaalign:
+rule split_strains:
     input:
-        skf="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/split_kmers.skf"
+        expand("out/clusters/{strain}/rfile.txt",
+             strain=clusters["Cluster"].unique())
+
+rule run_split_strains:
+    input:
+        config["poppunk_rfile"]
     output:
-       alignment="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln"
-    log:
-        "out/logs/ska_align_{strain}.log"
+        rfile="out/clusters/{strain}/rfile.txt",
+        namefile="out/clusters/{strain}/names.txt"
     params:
-        prefix="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align"
-    conda:
-        "envs/ska.yml"
-    shell:
-        "ska align {input.skf} > {output.alignment} 2> {log}"
+        strain=lambda wildcards: wildcards.strain
+    run:
+        cluster_samples = clusters.loc[clusters['Cluster'] == int(wildcards.strain)].index
+        sample_subset = samples.loc[list(cluster_samples)]
+        if (len(sample_subset) >= 1):
+            sample_subset.to_csv(output.rfile, sep="\t", header=False)
+            sample_subset.index.to_series().to_csv(output.namefile, sep="\t", header=False, index=False)
 
-rule run_snpsdist:
+rule skabuild:
     input:
-        aln="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/align_variants.aln"
-    output:
-        snps="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists.tsv"
-    log:
-        "out/logs/snp-dists_{strain}.log"
-    conda:
-        "envs/snp-dists.yml"
-    shell:
-        "snp-dists -q -b -m {input.aln} > {output.snps}"
+        expand("out/clusters/{strain}/split_kmers.skf",
+             strain=included_strain_ids)
 
-rule run_snps2te:
+rule run_skabuild:
     input:
-       snps="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists.tsv",
-       data="/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/kp_metadata_all.tsv"
+        samples="out/clusters/{strain}/rfile.txt"
     output:
-       "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/{strain}/snp-dists_te.tsv"
-    log:
-        "out/logs/te_{strain}.log"
-    shell:
-        "python workflow/scripts/snps2te.py {input.snps} {input.data}"
-
-rule merge_te:
-    log:
-        "out/logs/te_merege.log"
-    script:
-        "scripts/merge_te.py"
-
-# --- Pseudomonas aeruginosa --- #
-
-rule run_skabuild_p:
-    input:
-        samples="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/rfile.txt"
-    output:
-        skf="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/split_kmers.skf",
+        skf="out/clusters/{strain}/split_kmers.skf",
     params:
-        skf_prefix="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/split_kmers",
-        fastq_qual=config['ska']['fastq_cov'],
-        fastq_cov=config['ska']['fastq_qual'],
+        skf_prefix="out/clusters/{strain}/split_kmers",
+        fastq_qual=config["ska"]["fastq_qual"],
+        fastq_cov=config['ska']['fastq_cov'],
         kmer=config['ska']['kmer'],
         single_strand=config['ska']['single_strand']
     log:
@@ -141,25 +83,58 @@ rule run_skabuild_p:
     script:
         "scripts/run_ska_build.py"
 
-rule run_skaalign_p:
+rule skaalign:
     input:
-        skf="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/split_kmers.skf"
+      expand("out/clusters/{strain}/align_variants.aln",
+             strain=included_strain_ids)
+
+rule run_skaalign:
+    input:
+        skf="out/clusters/{strain}/split_kmers.skf"
     output:
-        alignment="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/align_variants.aln"
+        alignment="out/clusters/{strain}/align_variants.aln"
     log:
         "out/logs/ska_align_{strain}.log"
     params:
-        prefix="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/align"
+        prefix="out/clusters/{strain}/align"
     conda:
         "envs/ska.yml"
     shell:
         "ska align {input.skf} > {output.alignment} 2> {log}"
 
-rule run_snpsdist_p:
+rule tree:
     input:
-        aln="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/align_variants.aln"
+      expand("out/clusters/{strain}/{strain}_tree.iqtree",
+           strain=included_strain_ids)
+
+rule run_tree:
+    input:
+        alignment="out/clusters/{strain}/align_variants.aln"
     output:
-        snps="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/snp-dists.tsv"
+        tree="out/clusters/{strain}/{strain}_tree.iqtree"
+    log:
+        "out/logs/tree_{strain}.log"
+    params:
+        model=config["iqtree"]["model"],
+        alternative_model=config["iqtree"]["alternative"],
+        prefix="out/clusters/{strain}/{strain}_tree"
+    threads:
+        12
+    conda:
+        "envs/iqtree.yml"
+    script:
+        "scripts/run_iqtree.py"
+
+rule snpsdists:
+    input:
+      expand("out/clusters/{strain}/snp-dists.tsv",
+             strain=included_strain_ids)
+
+rule run_snpsdist:
+    input:
+        aln="out/clusters/{strain}/align_variants.aln"
+    output:
+        snps="out/clusters/{strain}/snp-dists.tsv"
     log:
         "out/logs/snp-dists_{strain}.log"
     conda:
@@ -167,83 +142,63 @@ rule run_snpsdist_p:
     shell:
         "snp-dists -q -b -m {input.aln} > {output.snps}"
 
-rule run_snps2te_p:
+rule snps2te:
     input:
-       snps="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/snp-dists.tsv",
-       data="/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/pa_metadata_all.tsv"
+      expand("out/clusters/{strain}/snp-dists_te.tsv",
+             strain=included_strain_ids)
+
+rule run_snps2te:
+    input:
+       snps="out/clusters/{strain}/snp-dists.tsv",
+       data=config["data"]
     output:
-       "/vol/projects/jburgaya/pipeline/tenet/data/paeruginosa/clusters/{strain}/snp-dists_te.tsv"
+       "out/clusters/{strain}/snp-dists_te.tsv"
+    params:
+        ratio=config["snps_day_ratio"],
+        minsnps=config["min_snps"]
     log:
         "out/logs/te_{strain}.log"
     shell:
-        "python workflow/scripts/snps2te.py {input.snps} {input.data}"
+        "python workflow/scripts/snps2te.py {input.snps} {input.data} --snps {params.ratio} --min_snps {params.minsnps}"
 
-rule merge_te_p:
-    log:
-        "out/logs/te_merge_pa.log"
-    script:
-	"scripts/merge_te_pa.py"
-
-# --- Escherichia coli --- #
-
-rule run_skabuild_e:
+rule merge:
     input:
-        samples="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/rfile.txt"
+        expand("out/clusters/{strain}/snp-dists_te.tsv",
+             strain=included_strain_ids)
     output:
-        skf="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/split_kmers.skf",
-    params:
-        skf_prefix="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/split_kmers",
-        fastq_qual=config['ska']['fastq_cov'],
-        fastq_cov=config['ska']['fastq_qual'],
-        kmer=config['ska']['kmer'],
-        single_strand=config['ska']['single_strand']
+        "out/te_merged.tsv"
     log:
-        "out/logs/ska_build_e_{strain}.log"
-    conda:
-        "envs/ska.yml"
-    script:
-        "scripts/run_ska_build.py"
-
-rule run_skaalign_e:
-    input:
-        skf="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/split_kmers.skf"
-    output:
-        alignment="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/align_variants.aln"
-    log:
-        "out/logs/ska_align_e_{strain}.log"
-    params:
-        prefix="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/align"
-    conda:
-        "envs/ska.yml"
+        "out/logs/te_merge.log"
     shell:
-        "ska align {input.skf} > {output.alignment} 2> {log}"
+        "python3 workflow/scripts/merge_te.py {input} {output}"
 
-rule run_snpsdist_e:
+rule stats_tenet:
     input:
-        aln="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/align_variants.aln"
+        data=config["data"],
+        te="out/te_merged.tsv"
     output:
-        snps="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/snp-dists.tsv"
+        "out/stats_tenet.tsv"
     log:
-        "out/logs/snp-dists_e_{strain}.log"
-    conda:
-        "envs/snp-dists.yml"
+        "out/logs/stats_tenet.log"
     shell:
-        "snp-dists -q -b -m {input.aln} > {output.snps}"
+        "python3 workflow/scripts/stats_tenet.py {input.data} {input.te} {output}"
 
-rule run_snps2te_e:
-    input:
-       snps="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/snp-dists.tsv",
-       data="/vol/projects/jburgaya/pipeline/tenet/data/ecoli/ec_metadata_all.tsv"
-    output:
-       "/vol/projects/jburgaya/pipeline/tenet/data/ecoli/clusters/{strain}/snp-dists_te.tsv"
-    log:
-        "out/logs/te_{strain}.log"
-    shell:
-        "python workflow/scripts/snps2te.py {input.snps} {input.data}"
 
-rule merge_te_e:
-    log:
-        "out/logs/te_merge_ec.log"
-    script:
-	"scripts/merge_te_ec.py"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

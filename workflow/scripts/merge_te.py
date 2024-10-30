@@ -1,26 +1,39 @@
 #!/usr/bin/env python
 
-import glob
+import argparse
+from pathlib import Path
 
-input_pattern = "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters/*/snp-dists_te.tsv"
-output_file = "/vol/projects/jburgaya/pipeline/tenet/data/kpneumo/snp-dists_te_merged.tsv"
+def merge_files(input_files, output_file):
+    """Merges multiple input files into a single output file."""
+    with output_file.open('w') as outfile:
+        # Write header from the first file
+        with input_files[0].open('r') as first_file:
+            header = first_file.readline()
+            outfile.write(header)
 
-# Get a list of all files matching the input pattern
-input_files = glob.glob(input_pattern)
+        # Write content from all files, skipping headers for subsequent files
+        for file_path in input_files:
+            with file_path.open('r') as infile:
+                if file_path != input_files[0]:  # Skip header in subsequent files
+                    infile.readline()
+                outfile.writelines(infile)
 
-# Open the output file in write mode
-with open(output_file, 'w') as outfile:
-    # Write the header from the first input file
-    with open(input_files[0], 'r') as first_file:
-        header = first_file.readline()
-        outfile.write(header)
+def main():
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Merge TE files")
+    parser.add_argument('input_files', nargs='+', help='Input files to merge')
+    parser.add_argument('output_file', help='Output file path')
+    args = parser.parse_args()
 
-    # Concatenate data from all input files, skipping the header
-    for file_path in input_files:
-        with open(file_path, 'r') as infile:
-            # Skip the header in all files except the first one
-            if file_path != input_files[0]:
-                next(infile)
-            # Write the rest of the lines to the output file
-            for line in infile:
-                outfile.write(line)
+    input_files = [Path(file) for file in args.input_files]
+    output_file = Path(args.output_file)
+
+    # Check if there are any input files
+    if not input_files:
+        raise ValueError("No input files provided.")
+
+    # Merge files
+    merge_files(input_files, output_file)
+
+if __name__ == "__main__":
+    main()

@@ -10,30 +10,31 @@ ska:
 
 # IQ-TREE options
 iqtree:
-  enabled: true
-  mode: full
   model: GTR+G+ASC
+  alternative: GTR+G
 
-# fastbaps options
-fastbaps:
-  # Number of hierarchical clustering levels
-  levels: 2
+# snps2te
+# this is for kpneumoniae
+# based on within patient snps accumulation
+# set-back: we miss MGE transfer/loss with this
+#snps_day_ratio: 0.04 
+snps_day_ratio: 0.08
+min_snps: 5
 
-# mandrake options
-mandrake:
-  knn: 50
-  perplexity: 25
-  maxIter: 100000
+# min cluster size
+min_cluster_size: 3
 
 # ----- inputs ----- #
+# already there produced outisde the pipeline
+# data
+data: "data/data.tsv"
 
-# outputs for kpneumo
-poppunk_rfile: /vol/projects/jburgaya/pipeline/tenet/poppunk_input_kp.txt
-poppunk_clusters: /vol/projects/jburgaya/pipeline/tenet/out/poppunk/kpneumo/kpneumo_clusters.csv
-poppunk_h5: /vol/projects/jburgaya/pipeline/tenet/out/poppunk/kpneumo/kpneumo.h5
+# poppunk
+poppunk_rfile: "poppunk_input.txt"
+poppunk_clusters: "out/poppunk/poppunk_clusters/poppunk_clusters_clusters.csv"
+poppunk_h5: "out/poppunk/Klebsiella_pneumoniae_v3_full/Klebsiella_pneumoniae_v3_full.h5"
 
 # strians cluster directory
-strains_dir: /vol/projects/jburgaya/pipeline/tenet/data/kpneumo/clusters
+strains_dir: "out/clusters/"
 
-# ----- outputs ----- #
 
