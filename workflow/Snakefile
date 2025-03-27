@@ -1,80 +1,43 @@
-from snakemake.utils import validate
+import re
 import pandas as pd
 import os
-import glob
 
 # ----- load config file ----- #
-
 configfile: "config/config.yml"
 
 # ----- define functions ----- #
 def _read_file_names(indir, extension='.fna'):
-  return {x.split(extension)[0] for x in os.listdir(indir) if x.endswith(extension)}
+    return {x.split(extension)[0] for x in os.listdir(indir) if x.endswith(extension)}
 
-# this function reads the full path to the dir
 def _read_dir_path(indir):
-  return {os.path.join(indir, x)
-          for x in os.listdir(indir)}
+    return {os.path.join(indir, x) for x in os.listdir(indir)}
 
-# this function reads the directories within a dir
 def _read_dir(indir):
-    return [x for x in os.listdir(indir)
-            if os.path.isdir(os.path.join(indir, x))]
+    return [x for x in os.listdir(indir) if os.path.isdir(os.path.join(indir, x))]
 
-# poppunk functions
-prefix_match = re.match(r"^(.+)\.h5$", config["poppunk_h5"])
-if prefix_match:
-    db_prefix = prefix_match.group(1)
-else:
-    raise RuntimeError("PopPUNK DB is not a .h5 file")
-
+# load samples
 samples = pd.read_table(config["poppunk_rfile"], header=None, index_col=0)
-clusters = pd.read_table(config["poppunk_clusters"], sep=",", header=0).set_index("Taxon")
+samples.index = samples.index.str.strip().astype(str)
 
-print(clusters["Cluster"].unique())
+# load filtered clusters
+with open(config["poppunk_validclusters"]) as f:
+    included_clusters = {line.strip() for line in f}
 
-valid_clusters = clusters["Cluster"].value_counts().loc[lambda x: x >= config["min_cluster_size"]].index
-
-valid_indices = clusters.index.intersection(samples.index)
-included_clusters = clusters.loc[valid_indices].loc[clusters["Cluster"].isin(valid_clusters), "Cluster"].unique()
-included_samples = samples.loc[valid_indices.intersection(clusters.index[clusters["Cluster"].isin(included_clusters)])]
-
-print("Included clusters:", included_clusters)
 
 # ----- start execution of the rules ----- #
 
-rule split_strains:
-    input:
-        expand("out/clusters/{strain}/rfile.txt",
-             strain=included_clusters)
-
-rule run_split_strains:
-    input:
-        config["poppunk_rfile"]
-    output:
-        rfile="out/clusters/{strain}/rfile.txt",
-        namefile="out/clusters/{strain}/names.txt"
-    params:
-        strain=lambda wildcards: wildcards.strain
-    run:
-        cluster_samples = clusters.loc[clusters['Cluster'] == int(wildcards.strain)].index
-        sample_subset = samples.loc[list(cluster_samples)]
-        if (len(sample_subset) >= 1):
-            sample_subset.to_csv(output.rfile, sep="\t", header=False)
-            sample_subset.index.to_series().to_csv(output.namefile, sep="\t", header=False, index=False)
-
 rule skabuild:
     input:
-        expand("out/clusters/{strain}/split_kmers.skf",
+	expand("out/clusters/{strain}/split_kmers.skf",
              strain=included_clusters)
 
 rule run_skabuild:
     input:
-        samples="out/clusters/{strain}/rfile.txt"
+	samples="out/clusters/{strain}/rfile.txt"
     output:
-        skf="out/clusters/{strain}/split_kmers.skf",
+	skf="out/clusters/{strain}/split_kmers.skf",
     params:
-        skf_prefix="out/clusters/{strain}/split_kmers",
+	skf_prefix="out/clusters/{strain}/split_kmers",
         fastq_qual=config["ska"]["fastq_qual"],
         fastq_cov=config['ska']['fastq_cov'],
         kmer=config['ska']['kmer'],
@@ -82,9 +45,9 @@ rule run_skabuild:
     log:
         "out/logs/ska_build_{strain}.log"
     conda:
-        "envs/ska.yml"
+	"envs/ska.yml"
     script:
-        "scripts/run_ska_build.py"
+	"scripts/run_ska_build.py"
 
 rule skaalign:
     input:
@@ -93,40 +56,41 @@ rule skaalign:
 
 rule run_skaalign:
     input:
-        skf="out/clusters/{strain}/split_kmers.skf"
+	skf="out/clusters/{strain}/split_kmers.skf"
     output:
-        alignment="out/clusters/{strain}/align_variants.aln"
+	alignment="out/clusters/{strain}/align_variants.aln"
     log:
         "out/logs/ska_align_{strain}.log"
     params:
-        prefix="out/clusters/{strain}/align"
+	prefix="out/clusters/{strain}/align"
     conda:
-        "envs/ska.yml"
+	"envs/ska.yml"
     shell:
-        "ska align {input.skf} > {output.alignment} 2> {log}"
+	"ska align {input.skf} > {output.alignment} 2> {log}"
 
 rule tree:
     input:
-      expand("out/clusters/{strain}/{strain}_tree.iqtree",
+      expand("out/clusters/{strain}/done_tree.txt",
            strain=included_clusters)
 
 rule run_tree:
     input:
-        alignment="out/clusters/{strain}/align_variants.aln"
+	alignment="out/clusters/{strain}/align_variants.aln"
     output:
-        tree="out/clusters/{strain}/{strain}_tree.iqtree"
+	tree="out/clusters/{strain}/{strain}_tree.iqtree",
+        done="out/clusters/{strain}/done_tree.txt"
     log:
         "out/logs/tree_{strain}.log"
     params:
-        model=config["iqtree"]["model"],
+	model=config["iqtree"]["model"],
         alternative_model=config["iqtree"]["alternative"],
         prefix="out/clusters/{strain}/{strain}_tree"
     threads:
-        12
+	12
     conda:
-        "envs/iqtree.yml"
+	"envs/iqtree.yml"
     script:
-        "scripts/run_iqtree.py"
+	"scripts/run_iqtree.py"
 
 rule snpsdists:
     input:
@@ -135,15 +99,15 @@ rule snpsdists:
 
 rule run_snpsdist:
     input:
-        aln="out/clusters/{strain}/align_variants.aln"
+	aln="out/clusters/{strain}/align_variants.aln"
     output:
-        snps="out/clusters/{strain}/snp-dists.tsv"
+	snps="out/clusters/{strain}/snp-dists.tsv"
     log:
         "out/logs/snp-dists_{strain}.log"
     conda:
-        "envs/snp-dists.yml"
+	"envs/snp-dists.yml"
     shell:
-        "snp-dists -q -b -m {input.aln} > {output.snps}"
+	"snp-dists -q -b -m {input.aln} > {output.snps}"
 
 rule snps2te:
     input:
@@ -157,51 +121,21 @@ rule run_snps2te:
     output:
        "out/clusters/{strain}/snp-dists_te.tsv"
     params:
-        ratio=config["snps_day_ratio"],
+	ratio=config["snps_day_ratio"],
         minsnps=config["min_snps"]
     log:
         "out/logs/te_{strain}.log"
     shell:
-        "python workflow/scripts/snps2te.py {input.snps} {input.data} --snps {params.ratio} --min_snps {params.minsnps}"
+	"python workflow/scripts/snps2te.py {input.snps} {input.data} --snps {params.ratio} --min_snps {params.minsnps}"
 
 rule merge:
     input:
-        expand("out/clusters/{strain}/snp-dists_te.tsv",
+	expand("out/clusters/{strain}/snp-dists_te.tsv",
              strain=included_clusters)
     output:
-        "out/te_merged.tsv"
+	"out/te_merged.tsv"
     log:
         "out/logs/te_merge.log"
     shell:
-        "python3 workflow/scripts/merge_te.py {input} {output}"
-
-rule stats_tenet:
-    input:
-        data=config["data"],
-        te="out/te_merged.tsv"
-    output:
-        "out/stats_tenet.tsv"
-    log:
-        "out/logs/stats_tenet.log"
-    shell:
-        "python3 workflow/scripts/stats_tenet.py {input.data} {input.te} {output}"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	"python3 workflow/scripts/merge_te.py {input} {output}"
 

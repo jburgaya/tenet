@@ -6,10 +6,12 @@ from datetime import datetime
 import time
 import psutil
 
+
 def get_memory_usage():
     """Returns the current memory usage in MB."""
     process = psutil.Process(os.getpid())
     return process.memory_info().rss / (1024 * 1024)
+
 
 def get_options():
     """Parses command line arguments."""
@@ -23,62 +25,65 @@ def get_options():
 
     return parser.parse_args()
 
+
 def load_data(snp_dists_path, metadata_path):
     """Loads SNP distances and metadata into pandas DataFrames."""
     s = pd.read_csv(snp_dists_path, delimiter="\t", header=None)
     m = pd.read_csv(metadata_path, delimiter="\t")
     return s, m
 
+
 def prepare_data(s, m):
     """Merges metadata with SNP data and calculates date differences."""
-    # Rename SNP dataframe columns
     s.rename(columns={0: 'sample1', 1: 'sample2', 2: 'snps'}, inplace=True)
 
-    # Merge metadata with SNP data on sample1 and sample2
+    # Merge metadata to add sampling dates
     s = s.merge(m[['sampleid', 'samplingdate']], left_on='sample1', right_on='sampleid', how='left')
     s.rename(columns={'samplingdate': 'date1'}, inplace=True)
-    s = s.merge(m[['sampleid', 'samplingdate']], left_on='sample2', right_on='sampleid', how='left')
+    s = s.merge(m[['sampleid', 'samplingdate']], left_on='sample2', right_on='sampleid', how='left', suffixes=('', '_sample2'))
     s.rename(columns={'samplingdate': 'date2'}, inplace=True)
 
-    # Update the date conversion to handle day-first date formats
-    s['date1'] = pd.to_datetime(s['date1'], dayfirst=True, errors='coerce')
-    s['date2'] = pd.to_datetime(s['date2'], dayfirst=True, errors='coerce')
-  
-    # Calculate date difference in days
-    s['date_diff'] = (pd.to_datetime(s['date2']) - pd.to_datetime(s['date1'])).dt.days
-    s['date_diff'] = s['date_diff'].abs()
+    # Ensure valid date parsing
+    s['date1'] = pd.to_datetime(s['date1'], format='%Y-%m-%d', errors='coerce')
+    s['date2'] = pd.to_datetime(s['date2'], format='%Y-%m-%d', errors='coerce')
 
-    # If 'pat_id' exists in metadata, handle patient ID-specific logic
+    # Filter rows with missing dates
+    s = s[s['date1'].notna() & s['date2'].notna()]
+
+    # Calculate absolute date difference
+    s['date_diff'] = (s['date2'] - s['date1']).dt.days.abs()
+
+    # Additional patient ID filtering (if applicable)
     if 'pat_id' in m.columns:
         s = s.merge(m[['sampleid', 'pat_id']], left_on='sample1', right_on='sampleid', how='left')
         s.rename(columns={'pat_id': 'pat_id1'}, inplace=True)
-        s = s.merge(m[['sampleid', 'pat_id']], left_on='sample2', right_on='sampleid', how='left')
+        s = s.merge(m[['sampleid', 'pat_id']], left_on='sample2', right_on='sampleid', how='left', suffixes=('', '_sample2'))
         s.rename(columns={'pat_id': 'pat_id2'}, inplace=True)
 
-        # Drop rows where patient IDs match for sample1 and sample2 (if not NaN) or if sample1 == sample2
         s = s[~((s['pat_id1'].notna()) & (s['pat_id2'].notna()) & (s['pat_id1'] == s['pat_id2']))]
 
-    # Remove rows where sample1 == sample2
+    # Drop self-comparisons and duplicates
     s = s[s['sample1'] != s['sample2']]
     s.reset_index(drop=True, inplace=True)
 
-    # Remove duplicated relationships (sample1-sample2 and sample2-sample1)
-    s['pair'] = s.apply(lambda row: '-'.join(sorted([row['sample1'], row['sample2']])), axis=1)
+    s['pair'] = s.apply(lambda row: '-'.join(sorted([str(row['sample1']), str(row['sample2'])])), axis=1)
     s = s.drop_duplicates(subset=['pair']).drop(columns=['pair'])
 
     return s
 
-def calculate_transmission_events(s, snps_per_day, min_snps, ci=0.9):
+
+def calculate_transmission_events(s, snps_per_day, min_snps):
     """Calculates transmission events based on accumulated SNPs and adds a 'transmission' column."""
     # Calculate expected accumulated SNPs
     expected_snps = s["date_diff"] * snps_per_day
 
     # Calculate lower and upper bounds for the CI
-    lower_bound = expected_snps * (1 - ci)
-    upper_bound = expected_snps * (1 + ci)
+    lower_bound = expected_snps * (1 - 0.05)
+    upper_bound = expected_snps * (1 + 0.05)
 
     s['expected_snps'] = expected_snps
     s['CI'] = lower_bound.astype(str) + '-' + upper_bound.astype(str)
+    
     # set transmission to 1 if:
     # snps are <= expected snps
     # snps fall within CI range
@@ -90,11 +95,25 @@ def calculate_transmission_events(s, snps_per_day, min_snps, ci=0.9):
         0
     )
 
-    return s[['sample1', 'sample2', 'transmission', 'snps', 'expected_snps', 'CI']]
+    # Add transmission for SNP thresholds
+    thresholds = [10, 20, 30, 100]
+    for t in thresholds:
+        s[f'transmission_{t}SNP'] = np.where(s['snps'] < t, 1, 0)
+
+    # Add transmission for date thresholds
+    days_thresholds = [90, 180, 270, 365]
+    for d in days_thresholds:
+        s[f'transmission_{d}d'] = np.where((s['date_diff'] < d) & (s['transmission'] == 1), 1, 0)
+
+    return s[['sample1', 'sample2', 'transmission', 'snps', 'expected_snps', 'CI', 'date_diff'] + 
+             [f'transmission_{t}SNP' for t in thresholds] + 
+             [f'transmission_{d}d' for d in days_thresholds]]
+
 
 def save_results(s, output_file):
     """Saves the results to a TSV file."""
     s.to_csv(output_file, index=False, sep='\t')
+
 
 def main():
     # Parse options
@@ -123,6 +142,7 @@ def main():
     # Measure and print memory usage
     memory_usage = get_memory_usage()
     print(f"Memory usage: {memory_usage:.2f} MB")
+
 
 if __name__ == "__main__":
     main()
