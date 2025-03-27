@@ -14,14 +14,10 @@ iqtree:
   alternative: GTR+G
 
 # snps2te
-# this is for kpneumoniae
-# based on within patient snps accumulation
-# set-back: we miss MGE transfer/loss with this
-#snps_day_ratio: 0.04 
 snps_day_ratio: 0.08
 min_snps: 5
 
-# min cluster size
+# min poppunk cluster size
 min_cluster_size: 3
 
 # ----- inputs ----- #
@@ -30,9 +26,10 @@ min_cluster_size: 3
 data: "data/data.tsv"
 
 # poppunk
-poppunk_rfile: "poppunk_input.txt"
-poppunk_clusters: "out/poppunk/poppunk_clusters/poppunk_clusters_clusters.csv"
-poppunk_h5: "out/poppunk/Klebsiella_pneumoniae_v3_full/Klebsiella_pneumoniae_v3_full.h5"
+poppunk_rfile: "poppunk_input_all.txt"
+poppunk_clusters: "klebsiella_clusters.csv"
+poppunk_validclusters: "poppunk_validclusters.txt"
+poppunk_h5: "/vol/projects/jburgaya/storage/Klebsiella_pneumoniae_v3_refs"
 
 # strians cluster directory
 strains_dir: "out/clusters/"
