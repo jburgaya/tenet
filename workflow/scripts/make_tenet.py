@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# have to test this
+# currently external on jupyterlab
+
 import os
 import pandas as pd
 import numpy as np
