@@ -63,10 +63,7 @@ iqtree:
   alternative: GTR+G
 
 # snps2te
-# this is for kpneumoniae
 # based on within patient snps accumulation
-# set-back: we miss MGE transfer/loss with this
-#snps_day_ratio: 0.04 
 snps_day_ratio: 0.08
 min_snps: 5
 
