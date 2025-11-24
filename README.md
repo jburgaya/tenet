@@ -32,7 +32,7 @@ cd TENET
 The pipeline depends on Conda.
 
 ```
-conda env create -n tenet --file=environment.yml
+conda env create -n tenet --file=environment.yaml
 conda activate tenet
 ```
 
