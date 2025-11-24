@@ -16,10 +16,6 @@ The pipeline consists on the following steps:
 * Merge into single output file `out/te_merged.tsv`
 * Create transmission events networks and calculate network parameters over time.
 
-
-Part of the pipeline is based on [PopPIPE pipeline](https://github.com/jburgaya/PopPIPE/tree/master#poppipe-population-analysis-pipeline-)
-
-
 # Get started
 
 Make a copy of this repository
