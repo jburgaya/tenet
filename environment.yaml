@@ -2,7 +2,6 @@ name: tenet
 channels:
   - conda-forge
   - bioconda
-  - defaults
 dependencies:
   - geopy
   - pandas
