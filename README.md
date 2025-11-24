@@ -77,6 +77,7 @@ poppunk_clusters: "out/poppunk/poppunk_clusters/poppunk_clusters_clusters.csv"
 poppunk_h5: "out/poppunk/Klebsiella_pneumoniae_v3_full/Klebsiella_pneumoniae_v3_full.h5"
 
 ```
+data.tsv file must have a "sampleid" and "samplingdate" column. If availanle, a "pat_id" column can be provided.
 
 ## Run the pipeline!
 
