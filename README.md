@@ -37,6 +37,7 @@ Run the bootstrap script to create the input files and directories
 ```
 bash bootstrap.sh
 ```
+Run the ``workflow/scripts/split_clusters.py`` script to split your assemblies into poppunk clusters.
 
 ## Modify the config file
 
