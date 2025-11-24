@@ -20,9 +20,7 @@ samples = pd.read_table(config["poppunk_rfile"], header=None, index_col=0)
 samples.index = samples.index.str.strip().astype(str)
 
 # load filtered clusters
-with open(config["poppunk_validclusters"]) as f:
-    included_clusters = {line.strip() for line in f}
-
+included_clusters = {name for name in os.listdir("out/clusters") if os.path.isdir(os.path.join("out/clusters", name))}
 
 # ----- start execution of the rules ----- #
 
