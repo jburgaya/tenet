@@ -6,7 +6,7 @@ Analysis of transmission events in bacterial strains.
 
 The pipeline consists on the following steps:
 
-* Split strains into PopPUNK SCs with at least 3 strains/SC. Creates names.txt and rfile.txt with strains within the cluster (as in PopPIPE pipeline). Clusters are found in `out/clusters/{strain}`
+* Split strains into PopPUNK SCs with at least 3 strains/SC. Creates names.txt and rfile.txt with strains within the cluster. Clusters are found in `out/clusters/{strain}`
 * Align strains within each SC using ska build & ska align, using [ska](https://github.com/bacpop/ska.rust)
 * Generate ML phylogeny using [iqtree](https://github.com/Cibiv/IQ-TREE)
 * Calculate SNPs from fasta alignment. It uses [snp-dists](https://github.com/tseemann/snp-dists)
