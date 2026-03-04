@@ -4,8 +4,6 @@ Analysis of transmission events in bacterial strains.
 
 # Pipeline
 
-Run PopPUNK outside the pipeline.
-
 The pipeline consists on the following steps:
 
 * Split strains into PopPUNK SCs with at least 3 strains/SC. Creates names.txt and rfile.txt with strains within the cluster (as in PopPIPE pipeline). Clusters are found in `out/clusters/{strain}`
